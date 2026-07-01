@@ -1,0 +1,153 @@
+╔════════════════════════════════════════════════════════════╗
+║  CONTROLE DE SALÁRIO-MATERNIDADE                           ║
+║  Sistema de Gestão de Clientes                             ║
+║  Versão 1.0 - Julho 2026                                   ║
+╚════════════════════════════════════════════════════════════╝
+
+📋 INSTRUÇÕES DE INSTALAÇÃO E USO
+═══════════════════════════════════════════════════════════════
+
+1️⃣  PRÉ-REQUISITOS
+───────────────────────────────────────────────────────────────
+
+Você precisa ter instalado:
+
+✓ Node.js (v18 ou superior)
+  Download: https://nodejs.org/
+
+✓ pnpm (será instalado automaticamente se necessário)
+
+NÃO precisa instalar banco de dados! O sistema usa SQLite, que é um
+arquivo local (data/controle.db) criado automaticamente na primeira
+vez que você inicia o sistema.
+
+
+2️⃣  BANCO DE DADOS (AUTOMÁTICO)
+───────────────────────────────────────────────────────────────
+
+Não é necessário configurar nada. As tabelas são criadas sozinhas
+ao iniciar o sistema, dentro do arquivo:
+
+  data/controle.db
+
+Para fazer backup, basta copiar esse arquivo. Para começar do zero,
+apague o arquivo (ou a pasta "data") e inicie o sistema de novo.
+
+
+3️⃣  CRIAR ARQUIVO .env.local
+───────────────────────────────────────────────────────────────
+
+Na pasta raiz do projeto, crie um arquivo chamado ".env.local" com:
+
+DATABASE_URL="file:./data/controle.db"
+JWT_SECRET="sua_chave_secreta_muito_longa_com_mais_de_32_caracteres"
+VITE_APP_TITLE="Controle Salário-Maternidade"
+OWNER_NAME="Steffany Tavares"
+OWNER_OPEN_ID="steffany-local"
+VITE_APP_ID="local"
+OAUTH_SERVER_URL="http://localhost:3000"
+VITE_OAUTH_PORTAL_URL="http://localhost:3000"
+BUILT_IN_FORGE_API_URL="http://localhost:3000/api"
+BUILT_IN_FORGE_API_KEY="local-key"
+VITE_FRONTEND_FORGE_API_URL="http://localhost:3000/api"
+VITE_FRONTEND_FORGE_API_KEY="local-key"
+VITE_ANALYTICS_ENDPOINT="http://localhost:3000"
+VITE_ANALYTICS_WEBSITE_ID="local"
+
+
+4️⃣  INICIAR O SISTEMA
+───────────────────────────────────────────────────────────────
+
+Duplo clique no arquivo: INICIAR.bat
+
+OU execute no terminal:
+
+```bash
+pnpm dev
+```
+
+O sistema abrirá em: http://localhost:3000
+
+
+5️⃣  CREDENCIAIS DE ACESSO
+───────────────────────────────────────────────────────────────
+
+Ao abrir, aparece a tela de login. Entre com:
+
+  Usuário: Steffany
+  Senha:   12345
+
+(O usuario nao diferencia maiusculas/minusculas.)
+
+
+6️⃣  FUNCIONALIDADES PRINCIPAIS
+───────────────────────────────────────────────────────────────
+
+✓ Dashboard com estatísticas e alertas
+✓ Kanban com 15 etapas do fluxo
+✓ Gestão de Clientes (cadastro, edição, exclusão)
+✓ Controle de GPS/Pagamentos
+✓ Gestão de Urgências
+✓ Controle de Honorários
+✓ Relatórios com exportação CSV
+✓ Barra de pesquisa global
+✓ Gráficos de evolução de honorários
+✓ Sistema de metas com indicadores visuais
+✓ Filtros por período (mês, trimestre, ano)
+
+
+7️⃣  SOLUÇÃO DE PROBLEMAS
+───────────────────────────────────────────────────────────────
+
+❌ "Node.js não encontrado"
+   → Instale Node.js em: https://nodejs.org/
+
+❌ "Erro ao conectar ao banco de dados"
+   → Verifique se o arquivo .env.local existe e tem a linha
+     DATABASE_URL="file:./data/controle.db"
+   → Apague a pasta "data" e inicie o sistema novamente (as tabelas
+     serão recriadas automaticamente)
+
+❌ "Porta 3000 já está em uso"
+   → Feche outros programas que usam a porta 3000
+   → Ou mude a porta no arquivo vite.config.ts
+
+
+8️⃣  PARAR O SISTEMA
+───────────────────────────────────────────────────────────────
+
+Pressione Ctrl+C no terminal onde o sistema está rodando
+
+
+9️⃣  ESTRUTURA DO PROJETO
+───────────────────────────────────────────────────────────────
+
+controle-maternidade-site/
+├── client/              ← Frontend (React)
+├── server/              ← Backend (Express + tRPC)
+├── drizzle/             ← Banco de dados (schema e migrations)
+├── shared/              ← Código compartilhado
+├── package.json         ← Dependências
+├── INICIAR.bat          ← Script para iniciar
+└── LEIA-ME.txt          ← Este arquivo
+
+
+🔟  SUPORTE
+───────────────────────────────────────────────────────────────
+
+Se tiver problemas:
+
+1. Verifique se todos os pré-requisitos estão instalados
+2. Leia a seção "Solução de Problemas" acima
+3. Verifique o arquivo .env.local
+4. Tente deletar a pasta "node_modules" e rodar "pnpm install" novamente
+
+
+═══════════════════════════════════════════════════════════════
+
+Versão: 1.0
+Data: Julho 2026
+Sistema: Controle de Salário-Maternidade
+Desenvolvido para: Steffany Tavares
+
+═══════════════════════════════════════════════════════════════

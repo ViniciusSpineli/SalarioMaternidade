@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { STATUS_PAGAMENTO, pagamentoRecebido } from "@shared/status";
+import { STATUS_PAGAMENTO, pagamentoRecebido, valorRecebidoHonorario, valorPendenteHonorario } from "@shared/status";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getHonorariosByClienteId, createHonorario, updateHonorario, updateCliente, getAllClientes } from "../db";
 
@@ -62,7 +62,7 @@ export const honorariosRouter = router({
       return { success: true };
     }),
 
-  // Listar honorarios por status de pagamento
+  // Listar honorarios por status de pagamento (um item por honorário)
   listByStatus: protectedProcedure
     .input(z.object({ status: z.enum(["pendentes", "recebidos", "inadimplentes"]) }))
     .query(async ({ input }) => {
@@ -71,16 +71,17 @@ export const honorariosRouter = router({
 
       for (const cliente of clientes) {
         const honorarios = await getHonorariosByClienteId(cliente.id);
-        const temHonorario = honorarios.length > 0;
-        const algumRecebido = honorarios.some((h) => pagamentoRecebido(h.statusPagamento));
-        const algumPendente = honorarios.some((h) => !pagamentoRecebido(h.statusPagamento));
+        for (const honorario of honorarios) {
+          const recebido = valorRecebidoHonorario(honorario);
+          const pendente = valorPendenteHonorario(honorario);
 
-        if (input.status === "pendentes" && temHonorario && algumPendente) {
-          result.push({ cliente, honorarios });
-        } else if (input.status === "recebidos" && algumRecebido) {
-          result.push({ cliente, honorarios });
-        } else if (input.status === "inadimplentes" && cliente.inadimplente) {
-          result.push({ cliente, honorarios });
+          if (input.status === "pendentes" && pendente > 0) {
+            result.push({ cliente, honorario, recebido, pendente });
+          } else if (input.status === "recebidos" && recebido > 0) {
+            result.push({ cliente, honorario, recebido, pendente });
+          } else if (input.status === "inadimplentes" && cliente.inadimplente) {
+            result.push({ cliente, honorario, recebido, pendente });
+          }
         }
       }
 

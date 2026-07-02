@@ -3,6 +3,7 @@ import { publicProcedure, router } from "../_core/trpc";
 import { getDb } from "../db";
 import { honorarios } from "../../drizzle/schema";
 import { desc } from "drizzle-orm";
+import { valorRecebidoHonorario, valorPendenteHonorario } from "@shared/status";
 
 export const graficosRouter = router({
   // Obter evolução mensal de honorários (últimos 12 meses)
@@ -35,12 +36,8 @@ export const graficosRouter = router({
           const mes = `${String(data.getMonth() + 1).padStart(2, "0")}/${data.getFullYear()}`;
 
           if (mesesMap.has(mes)) {
-            const valor = parseFloat(h.valorTotal.toString());
-            if (h.recebido) {
-              mesesMap.get(mes)!.recebido += valor;
-            } else {
-              mesesMap.get(mes)!.pendente += valor;
-            }
+            mesesMap.get(mes)!.recebido += valorRecebidoHonorario(h);
+            mesesMap.get(mes)!.pendente += valorPendenteHonorario(h);
           }
         }
       });
@@ -72,12 +69,8 @@ export const graficosRouter = router({
       let pendente = 0;
 
       todosHonorarios.forEach((h) => {
-        const valor = parseFloat(h.valorTotal.toString());
-        if (h.recebido) {
-          recebido += valor;
-        } else {
-          pendente += valor;
-        }
+        recebido += valorRecebidoHonorario(h);
+        pendente += valorPendenteHonorario(h);
       });
 
       return {
@@ -117,12 +110,8 @@ export const graficosRouter = router({
           const chave = `Q${trimestre}/${data.getFullYear()}`;
 
           if (trimestresMap.has(chave)) {
-            const valor = parseFloat(h.valorTotal.toString());
-            if (h.recebido) {
-              trimestresMap.get(chave)!.recebido += valor;
-            } else {
-              trimestresMap.get(chave)!.pendente += valor;
-            }
+            trimestresMap.get(chave)!.recebido += valorRecebidoHonorario(h);
+            trimestresMap.get(chave)!.pendente += valorPendenteHonorario(h);
           }
         }
       });
@@ -162,12 +151,8 @@ export const graficosRouter = router({
           const ano = data.getFullYear();
 
           if (anosMap.has(ano)) {
-            const valor = parseFloat(h.valorTotal.toString());
-            if (h.recebido) {
-              anosMap.get(ano)!.recebido += valor;
-            } else {
-              anosMap.get(ano)!.pendente += valor;
-            }
+            anosMap.get(ano)!.recebido += valorRecebidoHonorario(h);
+            anosMap.get(ano)!.pendente += valorPendenteHonorario(h);
           }
         }
       });
@@ -216,12 +201,8 @@ export const graficosRouter = router({
           if (h.dataVencimento) {
             const data = new Date(h.dataVencimento);
             if (data >= dataInicio) {
-              const valor = parseFloat(h.valorTotal.toString());
-              if (h.recebido) {
-                recebido += valor;
-              } else {
-                pendente += valor;
-              }
+              recebido += valorRecebidoHonorario(h);
+              pendente += valorPendenteHonorario(h);
             }
           }
         });

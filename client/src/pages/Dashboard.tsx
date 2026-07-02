@@ -6,11 +6,13 @@ import { MetasSection } from "@/components/MetasSection";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
+const formatarMoeda = (valor: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor || 0);
+
 export default function Dashboard() {
   const { data: clientes = [] } = trpc.clientes.list.useQuery();
   const { data: gpsByCompetencia = [] } = trpc.gps.listByCompetencia.useQuery();
-  const { data: honorariosPendentes = [] } = trpc.honorarios.listByStatus.useQuery({ status: "pendentes" });
-  const { data: honorariosRecebidos = [] } = trpc.honorarios.listByStatus.useQuery({ status: "recebidos" });
+  const { data: resumoHon } = trpc.graficos.getResumoHonorarios.useQuery();
 
   const porStatus = (status: string) => clientes.filter(c => c.statusProcesso === status).length;
 
@@ -23,8 +25,8 @@ export default function Dashboard() {
     emRecurso: porStatus("Em recurso INSS"),
     beneficiosConcedidos: porStatus("Benefício concedido"),
     gpsAGerar: gpsByCompetencia.reduce((acc: number, comp: any) => acc + (comp.pendentes || 0), 0),
-    honorariosPendentes: honorariosPendentes.length,
-    honorariosRecebidos: honorariosRecebidos.length,
+    honorariosPendentes: resumoHon?.pendente ?? 0,
+    honorariosRecebidos: resumoHon?.recebido ?? 0,
     inadimplentes: clientes.filter(c => c.inadimplente).length,
   };
 
@@ -39,8 +41,8 @@ export default function Dashboard() {
         <StatCard title="Em Recurso INSS" value={stats.emRecurso} icon={Scale} color="bg-red-500" />
         <StatCard title="Benefícios Concedidos" value={stats.beneficiosConcedidos} icon={CheckCircle2} color="bg-green-500" />
         <StatCard title="GPS a Gerar" value={stats.gpsAGerar} icon={Clock} color="bg-yellow-500" />
-        <StatCard title="Honorários Pendentes" value={stats.honorariosPendentes} icon={DollarSign} color="bg-orange-500" />
-        <StatCard title="Honorários Recebidos" value={stats.honorariosRecebidos} icon={DollarSign} color="bg-emerald-500" />
+        <StatCard title="Honorários Pendentes" value={formatarMoeda(stats.honorariosPendentes)} icon={DollarSign} color="bg-orange-500" />
+        <StatCard title="Honorários Recebidos" value={formatarMoeda(stats.honorariosRecebidos)} icon={DollarSign} color="bg-emerald-500" />
         <StatCard title="Inadimplentes" value={stats.inadimplentes} icon={AlertCircle} color="bg-red-700" />
       </div>
 
@@ -76,7 +78,7 @@ export default function Dashboard() {
                 <AlertItem
                   type="atencao"
                   title="Honorários Pendentes"
-                  message={`${stats.honorariosPendentes} cliente(s) com honorários a receber`}
+                  message={`${formatarMoeda(stats.honorariosPendentes)} em honorários a receber`}
                 />
               )}
             </div>
@@ -174,7 +176,7 @@ function StatCard({
   color,
 }: {
   title: string;
-  value: number;
+  value: number | string;
   icon: React.ComponentType<{ size?: number }>;
   color: string;
 }) {

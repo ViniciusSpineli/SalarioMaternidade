@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { getGPSByClienteId, updateGPS, getAllClientes, getClienteById, updateCliente } from "../db";
+import { getGPSByClienteId, updateGPS, getAllClientes, getClienteById, updateCliente, createGPS } from "../db";
 
 export const gpsRouter = router({
   // Listar GPS por cliente
@@ -8,6 +8,26 @@ export const gpsRouter = router({
     .input(z.object({ clienteId: z.number() }))
     .query(async ({ input }) => {
       return await getGPSByClienteId(input.clienteId);
+    }),
+
+  // Cadastrar nova guia (GPS) manualmente
+  create: protectedProcedure
+    .input(
+      z.object({
+        clienteId: z.number({ message: "Selecione uma cliente" }),
+        competencia: z.string().min(1, "Informe a competência"),
+        vencimento: z.string().min(1, "Informe o vencimento"),
+        valor: z.number().positive().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const id = await createGPS(
+        input.clienteId,
+        input.competencia,
+        new Date(input.vencimento),
+        input.valor
+      );
+      return { id };
     }),
 
   // Marcar GPS como paga

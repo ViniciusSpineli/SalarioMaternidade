@@ -1,22 +1,74 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
+
+const FORM_INICIAL = {
+  clienteId: "",
+  competencia: "",
+  vencimento: "",
+  valor: "178.00",
+};
 
 export default function GPS() {
+  const utils = trpc.useUtils();
   const { data: clientes = [] } = trpc.clientes.list.useQuery();
   const { data: gpsByCompetencia = [] } = trpc.gps.listByCompetencia.useQuery();
   const marcarPagaMutation = trpc.gps.marcarPaga.useMutation();
+  const createMutation = trpc.gps.create.useMutation();
 
   const [activeTab, setActiveTab] = useState("a-gerar");
+  const [showForm, setShowForm] = useState(false);
+  const [formData, setFormData] = useState(FORM_INICIAL);
 
   const handleMarcarPaga = async (gpsId: number, clienteId: number) => {
     try {
       await marcarPagaMutation.mutateAsync({ gpsId, clienteId });
+      await utils.gps.listByCompetencia.invalidate();
     } catch (error) {
       console.error(error);
+    }
+  };
+
+  const handleCadastrarGuia = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData.clienteId) {
+      alert("Selecione uma cliente.");
+      return;
+    }
+    try {
+      const valorNum = parseFloat(formData.valor.replace(",", "."));
+      await createMutation.mutateAsync({
+        clienteId: Number(formData.clienteId),
+        competencia: formData.competencia,
+        vencimento: formData.vencimento,
+        valor: isNaN(valorNum) ? undefined : valorNum,
+      });
+      await utils.gps.listByCompetencia.invalidate();
+      setFormData(FORM_INICIAL);
+      setShowForm(false);
+    } catch (error) {
+      console.error(error);
+      alert("Não foi possível cadastrar a guia. Verifique os dados e tente novamente.");
     }
   };
 
@@ -40,7 +92,93 @@ export default function GPS() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Controle de GPS/Pagamentos</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Controle de GPS/Pagamentos</h1>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="mr-2" size={18} /> Cadastrar Nova Guia
+        </Button>
+      </div>
+
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cadastrar Nova Guia</DialogTitle>
+            <DialogDescription>
+              Preencha os dados da guia (GPS) para adicioná-la ao controle.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleCadastrarGuia} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select
+                value={formData.clienteId}
+                onValueChange={(value) => setFormData({ ...formData, clienteId: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Selecione a cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.map((c: any) => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Competência</Label>
+                <Input
+                  placeholder="Ex: 07/2026"
+                  value={formData.competencia}
+                  onChange={(e) => setFormData({ ...formData, competencia: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Vencimento</Label>
+                <Input
+                  type="date"
+                  value={formData.vencimento}
+                  onChange={(e) => setFormData({ ...formData, vencimento: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Valor (R$)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="178.00"
+                value={formData.valor}
+                onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowForm(false);
+                  setFormData(FORM_INICIAL);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={createMutation.isPending}>
+                {createMutation.isPending ? "Salvando..." : "Cadastrar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>

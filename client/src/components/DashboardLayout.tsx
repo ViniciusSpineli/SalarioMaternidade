@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, PanelLeft, Users, Kanban, DollarSign, CheckSquare, BarChart3, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, PanelLeft, Users, Kanban, DollarSign, Baby, BarChart3, FileText, LogOut } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,7 +33,7 @@ const menuItems = [
   { icon: Kanban, label: "Kanban", path: "/kanban" },
   { icon: Users, label: "Clientes", path: "/clientes" },
   { icon: DollarSign, label: "GPS/Pagamentos", path: "/gps" },
-  { icon: CheckSquare, label: "Urgências", path: "/urgencias" },
+  { icon: Baby, label: "Aguardando Certidão", path: "/urgencias" },
   { icon: BarChart3, label: "Honorários", path: "/honorarios" },
   { icon: FileText, label: "Relatórios", path: "/relatorios" },
 ];

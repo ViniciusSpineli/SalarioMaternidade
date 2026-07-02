@@ -47,6 +47,7 @@ export enum EtapaFluxo {
   HONORARIOS_PENDENTES = 12,
   HONORARIOS_RECEBIDOS = 13,
   INADIMPLENTE = 14,
+  EM_RECURSO_INSS = 15,
 }
 
 // Tabela de clientes

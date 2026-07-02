@@ -130,7 +130,7 @@ export const clientesRouter = router({
       if (!cliente) throw new Error("Cliente não encontrada");
 
       const novaEtapa = input.novaEtapa ?? cliente.etapa + 1;
-      await updateCliente(input.id, { etapa: Math.min(novaEtapa, 14) });
+      await updateCliente(input.id, { etapa: Math.min(novaEtapa, 15) });
       return { success: true };
     }),
 

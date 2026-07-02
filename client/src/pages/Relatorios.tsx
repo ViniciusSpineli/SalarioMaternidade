@@ -4,21 +4,36 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { Download } from "lucide-react";
 
-export default function Relatorios() {
-  const { data: origens = [] } = trpc.relatorios.getOrigens.useQuery();
-  const { data: clientes = [], refetch } = trpc.relatorios.list.useQuery({
-    origem: undefined,
-    status: undefined,
-  });
-  const { data: csvData } = trpc.relatorios.exportarCSV.useQuery({
-    origem: undefined,
-    status: undefined,
-  });
+type StatusFiltro =
+  | ""
+  | "concluidos"
+  | "em_andamento"
+  | "aguardando_nascimento"
+  | "aguardando_certidao"
+  | "em_recurso"
+  | "honorarios_pagos"
+  | "honorarios_pendentes"
+  | "inadimplentes";
 
+export default function Relatorios() {
   const [filtros, setFiltros] = useState({
     origem: "",
-    status: "" as "" | "concluidos" | "em_andamento" | "honorarios_pagos" | "honorarios_pendentes" | "inadimplentes",
+    status: "" as StatusFiltro,
   });
+
+  const origemParam = filtros.origem || undefined;
+  const statusParam = (filtros.status || undefined) as Exclude<StatusFiltro, ""> | undefined;
+
+  const { data: origens = [] } = trpc.relatorios.getOrigens.useQuery();
+  const { data: clientes = [], refetch } = trpc.relatorios.list.useQuery({
+    origem: origemParam,
+    status: statusParam,
+  });
+  const { data: csvData } = trpc.relatorios.exportarCSV.useQuery({
+    origem: origemParam,
+    status: statusParam,
+  });
+  const { data: resumoMensal = [] } = trpc.relatorios.resumoMensalPorDPP.useQuery();
 
   const handleFiltrar = async () => {
     refetch();
@@ -79,6 +94,9 @@ export default function Relatorios() {
                 <option value="">Todos</option>
                 <option value="concluidos">Concluídos</option>
                 <option value="em_andamento">Em Andamento</option>
+                <option value="aguardando_nascimento">Aguardando Nascimento</option>
+                <option value="aguardando_certidao">Aguardando Certidão de Nascimento</option>
+                <option value="em_recurso">Em Recurso INSS</option>
                 <option value="honorarios_pagos">Honorários Pagos</option>
                 <option value="honorarios_pendentes">Honorários Pendentes</option>
                 <option value="inadimplentes">Inadimplentes</option>
@@ -93,6 +111,50 @@ export default function Relatorios() {
                 <Download size={18} className="mr-2" /> Exportar CSV
               </Button>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Visão Geral por Mês (por DPP)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-2 px-2">Mês (DPP)</th>
+                  <th className="text-left py-2 px-2">Total</th>
+                  <th className="text-left py-2 px-2">Aguard. Nascimento</th>
+                  <th className="text-left py-2 px-2">Aguard. Certidão</th>
+                  <th className="text-left py-2 px-2">Em Recurso INSS</th>
+                  <th className="text-left py-2 px-2">Benefício Concedido</th>
+                  <th className="text-left py-2 px-2">Concluídos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumoMensal.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-4 text-center text-gray-500">
+                      Nenhum dado para exibir
+                    </td>
+                  </tr>
+                ) : (
+                  resumoMensal.map((m: any) => (
+                    <tr key={m.mes} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-2 font-semibold">{m.mes}</td>
+                      <td className="py-2 px-2">{m.total}</td>
+                      <td className="py-2 px-2 text-blue-600">{m.aguardandoNascimento}</td>
+                      <td className="py-2 px-2 text-amber-600">{m.aguardandoCertidao}</td>
+                      <td className="py-2 px-2 text-red-600">{m.emRecurso}</td>
+                      <td className="py-2 px-2 text-purple-600">{m.beneficioConcedido}</td>
+                      <td className="py-2 px-2 text-green-600">{m.concluidos}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
         </CardContent>
       </Card>

@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { useState } from "react";
+import { toast } from "sonner";
 
 const ETAPAS = [
   { id: 0, nome: "Novas Clientes" },
@@ -9,10 +10,11 @@ const ETAPAS = [
   { id: 3, nome: "Pag. GPS Pendente" },
   { id: 4, nome: "GPS Paga" },
   { id: 5, nome: "Aguardando Nascimento" },
-  { id: 6, nome: "Docs do Parto" },
+  { id: 6, nome: "Aguardando Certidão de Nascimento" },
   { id: 7, nome: "Pronto p/ Protocolo" },
   { id: 8, nome: "Benefício Protocolado" },
   { id: 9, nome: "Em Análise INSS" },
+  { id: 15, nome: "Em Recurso INSS" },
   { id: 10, nome: "Benefício Concedido" },
   { id: 11, nome: "Cobrança Honorários" },
   { id: 12, nome: "Honorários Pendentes" },
@@ -100,6 +102,24 @@ function ClienteDetailModal({
   cliente: any;
   onClose: () => void;
 }) {
+  const utils = trpc.useUtils();
+  const updateMutation = trpc.clientes.update.useMutation();
+  const [etapaAtual, setEtapaAtual] = useState<number>(cliente.etapa);
+
+  const handleMudarEtapa = async (novaEtapa: number) => {
+    const anterior = etapaAtual;
+    setEtapaAtual(novaEtapa);
+    try {
+      await updateMutation.mutateAsync({ id: cliente.id, etapa: novaEtapa });
+      await utils.clientes.list.invalidate();
+      toast.success("Etapa atualizada");
+    } catch (error) {
+      console.error(error);
+      setEtapaAtual(anterior);
+      toast.error("Não foi possível atualizar a etapa");
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
@@ -150,6 +170,25 @@ function ClienteDetailModal({
                 {cliente.observacoes}
               </p>
             )}
+          </div>
+
+          <div className="mt-4 pt-4 border-t">
+            <label className="text-sm font-semibold block mb-1">Etapa</label>
+            <select
+              value={etapaAtual}
+              onChange={(e) => handleMudarEtapa(Number(e.target.value))}
+              disabled={updateMutation.isPending}
+              className="w-full p-2 border rounded text-sm"
+            >
+              {ETAPAS.map((etapa) => (
+                <option key={etapa.id} value={etapa.id}>
+                  {etapa.nome}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Mudar a etapa move a cliente para outra coluna do Kanban.
+            </p>
           </div>
         </div>
       </Card>

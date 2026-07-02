@@ -40,7 +40,7 @@ export const gpsRouter = router({
       const cliente = await getClienteById(input.clienteId);
       if (cliente) {
         if (cliente.dataNascimento) {
-          // Se já nasceu, ir para Docs do Parto
+          // Se já nasceu, ir para Aguardando Certidão de Nascimento
           await updateCliente(input.clienteId, { etapa: 6 });
         } else {
           // Se ainda não nasceu, ir para Aguardando Nascimento

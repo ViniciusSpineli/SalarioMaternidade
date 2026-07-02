@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { AlertCircle, CheckCircle2, Clock, Users } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Users, Scale } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraficoHonorarios } from "@/components/GraficoHonorarios";
 import { MetasSection } from "@/components/MetasSection";
@@ -12,7 +12,7 @@ export default function Dashboard() {
   const stats = {
     clientesAtivas: clientes.length,
     gpsAGerar: clientes.filter(c => c.etapa === 2).length,
-    urgentes: clientes.filter(c => c.urgenteAbsoluta).length,
+    emRecurso: clientes.filter(c => c.etapa === 15).length,
     honorariosPendentes: clientes.filter(c => c.etapa === 12).length,
     emAnalise: clientes.filter(c => c.etapa === 9).length,
     beneficiosConcedidos: clientes.filter(c => c.etapa === 10).length,
@@ -36,9 +36,9 @@ export default function Dashboard() {
           color="bg-yellow-500"
         />
         <StatCard
-          title="Casos Urgentes"
-          value={stats.urgentes}
-          icon={AlertCircle}
+          title="Em Recurso INSS"
+          value={stats.emRecurso}
+          icon={Scale}
           color="bg-red-500"
         />
         <StatCard
@@ -78,13 +78,13 @@ export default function Dashboard() {
           <CardTitle>Alertas Ativos</CardTitle>
         </CardHeader>
         <CardContent>
-          {stats.urgentes > 0 || stats.gpsAGerar > 0 ? (
+          {stats.emRecurso > 0 || stats.gpsAGerar > 0 || stats.honorariosPendentes > 0 ? (
             <div className="space-y-3">
-              {stats.urgentes > 0 && (
+              {stats.emRecurso > 0 && (
                 <AlertItem
                   type="urgente"
-                  title="Urgência Absoluta"
-                  message={`${stats.urgentes} cliente(s) em urgência absoluta requerem atenção imediata`}
+                  title="Em Recurso INSS"
+                  message={`${stats.emRecurso} cliente(s) em recurso no INSS requerem acompanhamento`}
                 />
               )}
               {stats.gpsAGerar > 0 && (

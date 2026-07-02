@@ -50,7 +50,7 @@ export function SearchBar() {
     3: "Pag. GPS Pendente",
     4: "GPS Paga",
     5: "Aguardando Nascimento",
-    6: "Docs do Parto",
+    6: "Aguardando Certidão de Nascimento",
     7: "Pronto Protocolo",
     8: "Benefício Protocolado",
     9: "Em Análise INSS",
@@ -59,6 +59,7 @@ export function SearchBar() {
     12: "Honorários Pendentes",
     13: "Honorários Recebidos",
     14: "Inadimplente",
+    15: "Em Recurso INSS",
   };
 
   return (

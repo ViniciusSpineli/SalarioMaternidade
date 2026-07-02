@@ -62,6 +62,8 @@ export const clientes = sqliteTable("clientes", {
   dataNascimento: integer("dataNascimento", { mode: "timestamp" }),
   observacoes: text("observacoes"),
   etapa: integer("etapa").default(0).notNull(),
+  // Status do processo (CRM). Campo principal de fluxo. Ver shared/status.ts
+  statusProcesso: text("statusProcesso").notNull().default("Aguardando assinatura"),
   urgenteAbsoluta: integer("urgenteAbsoluta", { mode: "boolean" }).default(false),
   inadimplente: integer("inadimplente", { mode: "boolean" }).default(false),
   dataConclusao: integer("dataConclusao", { mode: "timestamp" }),
@@ -100,6 +102,8 @@ export const honorarios = sqliteTable("honorarios", {
   vencimentoSegundaParcela: integer("vencimentoSegundaParcela", { mode: "timestamp" }),
   observacoes: text("observacoes"),
   recebido: integer("recebido", { mode: "boolean" }).default(false),
+  // Status de pagamento: Pendente | Primeira parcela paga | Segunda parcela paga | Quitada
+  statusPagamento: text("statusPagamento").notNull().default("Pendente"),
   createdAt: integer("createdAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull(),
   updatedAt: integer("updatedAt", { mode: "timestamp" }).default(sql`(unixepoch())`).notNull().$onUpdate(() => new Date()),
 });

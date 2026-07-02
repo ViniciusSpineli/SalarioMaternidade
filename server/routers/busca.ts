@@ -25,6 +25,7 @@ export const buscaRouter = router({
             cpf: clientes.cpf,
             origem: clientes.origem,
             etapa: clientes.etapa,
+            statusProcesso: clientes.statusProcesso,
             urgenteAbsoluta: clientes.urgenteAbsoluta,
             inadimplente: clientes.inadimplente,
           })

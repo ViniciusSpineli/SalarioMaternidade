@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STATUS_PAGAMENTO, pagamentoRecebido } from "@shared/status";
 import { protectedProcedure, router } from "../_core/trpc";
 import { getHonorariosByClienteId, createHonorario, updateHonorario, updateCliente, getAllClientes } from "../db";
 
@@ -30,21 +31,26 @@ export const honorariosRouter = router({
         clienteId,
         valorTotal: valorTotal.toString(),
         valorPrimeiraParcela: valorPrimeiraParcela?.toString(),
+        statusPagamento: "Pendente",
         ...data,
       });
-
-      // Atualizar cliente para etapa de Honorarios Pendentes
-      await updateCliente(clienteId, { etapa: 12 });
 
       return { id: honorarioId };
     }),
 
-  // Marcar honorarios como recebido
-  marcarRecebido: protectedProcedure
-    .input(z.object({ honorarioId: z.number(), clienteId: z.number() }))
+  // Atualizar o status de pagamento do honorario (Pendente / 1ª parcela / 2ª parcela / Quitada)
+  atualizarStatusPagamento: protectedProcedure
+    .input(
+      z.object({
+        honorarioId: z.number(),
+        statusPagamento: z.enum(STATUS_PAGAMENTO),
+      })
+    )
     .mutation(async ({ input }) => {
-      await updateHonorario(input.honorarioId, { recebido: true });
-      await updateCliente(input.clienteId, { etapa: 13 });
+      await updateHonorario(input.honorarioId, {
+        statusPagamento: input.statusPagamento,
+        recebido: pagamentoRecebido(input.statusPagamento),
+      });
       return { success: true };
     }),
 
@@ -52,11 +58,11 @@ export const honorariosRouter = router({
   marcarInadimplente: protectedProcedure
     .input(z.object({ clienteId: z.number() }))
     .mutation(async ({ input }) => {
-      await updateCliente(input.clienteId, { inadimplente: true, etapa: 14 });
+      await updateCliente(input.clienteId, { inadimplente: true });
       return { success: true };
     }),
 
-  // Listar honorarios por status
+  // Listar honorarios por status de pagamento
   listByStatus: protectedProcedure
     .input(z.object({ status: z.enum(["pendentes", "recebidos", "inadimplentes"]) }))
     .query(async ({ input }) => {
@@ -65,10 +71,13 @@ export const honorariosRouter = router({
 
       for (const cliente of clientes) {
         const honorarios = await getHonorariosByClienteId(cliente.id);
+        const temHonorario = honorarios.length > 0;
+        const algumRecebido = honorarios.some((h) => pagamentoRecebido(h.statusPagamento));
+        const algumPendente = honorarios.some((h) => !pagamentoRecebido(h.statusPagamento));
 
-        if (input.status === "pendentes" && cliente.etapa === 12) {
+        if (input.status === "pendentes" && temHonorario && algumPendente) {
           result.push({ cliente, honorarios });
-        } else if (input.status === "recebidos" && cliente.etapa === 13) {
+        } else if (input.status === "recebidos" && algumRecebido) {
           result.push({ cliente, honorarios });
         } else if (input.status === "inadimplentes" && cliente.inadimplente) {
           result.push({ cliente, honorarios });

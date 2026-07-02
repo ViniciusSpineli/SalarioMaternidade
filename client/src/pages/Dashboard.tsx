@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { AlertCircle, CheckCircle2, Clock, Users, Scale } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, Users, Scale, FileSignature, Baby, DollarSign, UserX } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { GraficoHonorarios } from "@/components/GraficoHonorarios";
 import { MetasSection } from "@/components/MetasSection";
@@ -8,69 +8,40 @@ import { Button } from "@/components/ui/button";
 
 export default function Dashboard() {
   const { data: clientes = [] } = trpc.clientes.list.useQuery();
+  const { data: gpsByCompetencia = [] } = trpc.gps.listByCompetencia.useQuery();
+  const { data: honorariosPendentes = [] } = trpc.honorarios.listByStatus.useQuery({ status: "pendentes" });
+  const { data: honorariosRecebidos = [] } = trpc.honorarios.listByStatus.useQuery({ status: "recebidos" });
+
+  const porStatus = (status: string) => clientes.filter(c => c.statusProcesso === status).length;
 
   const stats = {
-    clientesAtivas: clientes.length,
-    gpsAGerar: clientes.filter(c => c.etapa === 2).length,
-    emRecurso: clientes.filter(c => c.etapa === 15).length,
-    honorariosPendentes: clientes.filter(c => c.etapa === 12).length,
-    emAnalise: clientes.filter(c => c.etapa === 9).length,
-    beneficiosConcedidos: clientes.filter(c => c.etapa === 10).length,
-    honorariosRecebidos: clientes.filter(c => c.etapa === 13).length,
+    clientesAtivas: porStatus("Cliente ativa"),
+    clientesInativas: porStatus("Cliente inativa"),
+    aguardandoAssinatura: porStatus("Aguardando assinatura"),
+    aguardandoCertidao: porStatus("Aguardando certidão"),
+    emAnalise: porStatus("Em análise INSS"),
+    emRecurso: porStatus("Em recurso INSS"),
+    beneficiosConcedidos: porStatus("Benefício concedido"),
+    gpsAGerar: gpsByCompetencia.reduce((acc: number, comp: any) => acc + (comp.pendentes || 0), 0),
+    honorariosPendentes: honorariosPendentes.length,
+    honorariosRecebidos: honorariosRecebidos.length,
     inadimplentes: clientes.filter(c => c.inadimplente).length,
   };
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Clientes Ativas"
-          value={stats.clientesAtivas}
-          icon={Users}
-          color="bg-rose-500"
-        />
-        <StatCard
-          title="GPS a Gerar"
-          value={stats.gpsAGerar}
-          icon={Clock}
-          color="bg-yellow-500"
-        />
-        <StatCard
-          title="Em Recurso INSS"
-          value={stats.emRecurso}
-          icon={Scale}
-          color="bg-red-500"
-        />
-        <StatCard
-          title="Honorários Pendentes"
-          value={stats.honorariosPendentes}
-          icon={Clock}
-          color="bg-orange-500"
-        />
-        <StatCard
-          title="Em Análise INSS"
-          value={stats.emAnalise}
-          icon={Clock}
-          color="bg-purple-500"
-        />
-        <StatCard
-          title="Benefícios Concedidos"
-          value={stats.beneficiosConcedidos}
-          icon={CheckCircle2}
-          color="bg-green-500"
-        />
-        <StatCard
-          title="Honorários Recebidos"
-          value={stats.honorariosRecebidos}
-          icon={CheckCircle2}
-          color="bg-emerald-500"
-        />
-        <StatCard
-          title="Inadimplentes"
-          value={stats.inadimplentes}
-          icon={AlertCircle}
-          color="bg-red-700"
-        />
+        <StatCard title="Clientes Ativas" value={stats.clientesAtivas} icon={Users} color="bg-rose-500" />
+        <StatCard title="Clientes Inativas" value={stats.clientesInativas} icon={UserX} color="bg-gray-500" />
+        <StatCard title="Aguardando Assinatura" value={stats.aguardandoAssinatura} icon={FileSignature} color="bg-sky-500" />
+        <StatCard title="Aguardando Certidão" value={stats.aguardandoCertidao} icon={Baby} color="bg-amber-500" />
+        <StatCard title="Em Análise INSS" value={stats.emAnalise} icon={Clock} color="bg-purple-500" />
+        <StatCard title="Em Recurso INSS" value={stats.emRecurso} icon={Scale} color="bg-red-500" />
+        <StatCard title="Benefícios Concedidos" value={stats.beneficiosConcedidos} icon={CheckCircle2} color="bg-green-500" />
+        <StatCard title="GPS a Gerar" value={stats.gpsAGerar} icon={Clock} color="bg-yellow-500" />
+        <StatCard title="Honorários Pendentes" value={stats.honorariosPendentes} icon={DollarSign} color="bg-orange-500" />
+        <StatCard title="Honorários Recebidos" value={stats.honorariosRecebidos} icon={DollarSign} color="bg-emerald-500" />
+        <StatCard title="Inadimplentes" value={stats.inadimplentes} icon={AlertCircle} color="bg-red-700" />
       </div>
 
       <Card>
@@ -78,7 +49,7 @@ export default function Dashboard() {
           <CardTitle>Alertas Ativos</CardTitle>
         </CardHeader>
         <CardContent>
-          {stats.emRecurso > 0 || stats.gpsAGerar > 0 || stats.honorariosPendentes > 0 ? (
+          {stats.emRecurso > 0 || stats.aguardandoCertidao > 0 || stats.gpsAGerar > 0 || stats.honorariosPendentes > 0 ? (
             <div className="space-y-3">
               {stats.emRecurso > 0 && (
                 <AlertItem
@@ -87,18 +58,25 @@ export default function Dashboard() {
                   message={`${stats.emRecurso} cliente(s) em recurso no INSS requerem acompanhamento`}
                 />
               )}
+              {stats.aguardandoCertidao > 0 && (
+                <AlertItem
+                  type="atencao"
+                  title="Aguardando Certidão"
+                  message={`${stats.aguardandoCertidao} cliente(s) pendentes de enviar a certidão de nascimento`}
+                />
+              )}
               {stats.gpsAGerar > 0 && (
                 <AlertItem
                   type="atencao"
                   title="GPS a Gerar"
-                  message={`${stats.gpsAGerar} GPS aguardando geração`}
+                  message={`${stats.gpsAGerar} GPS aguardando geração/pagamento`}
                 />
               )}
               {stats.honorariosPendentes > 0 && (
                 <AlertItem
                   type="atencao"
                   title="Honorários Pendentes"
-                  message={`${stats.honorariosPendentes} cobrança(s) de honorários aguardando`}
+                  message={`${stats.honorariosPendentes} cliente(s) com honorários a receber`}
                 />
               )}
             </div>

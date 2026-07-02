@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { STATUS_PROCESSO } from "@shared/status";
 import { protectedProcedure, router } from "../_core/trpc";
 import {
   createCliente,
@@ -56,6 +57,7 @@ export const clientesRouter = router({
         dpp: z.date(),
         dataNascimento: z.date().optional(),
         observacoes: z.string().optional(),
+        statusProcesso: z.enum(STATUS_PROCESSO).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -105,6 +107,7 @@ export const clientesRouter = router({
         dataContratacao: z.date().optional(),
         dpp: z.date().optional(),
         etapa: z.number().optional(),
+        statusProcesso: z.enum(STATUS_PROCESSO).optional(),
         dataNascimento: z.date().optional(),
         observacoes: z.string().optional(),
         inadimplente: z.boolean().optional(),

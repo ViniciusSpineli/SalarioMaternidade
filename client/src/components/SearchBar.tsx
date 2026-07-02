@@ -43,25 +43,6 @@ export function SearchBar() {
     navigate(`/clientes?id=${clienteId}`);
   };
 
-  const etapaLabels: Record<number, string> = {
-    0: "Novas Clientes",
-    1: "Competência Calculada",
-    2: "GPS a Gerar",
-    3: "Pag. GPS Pendente",
-    4: "GPS Paga",
-    5: "Aguardando Nascimento",
-    6: "Aguardando Certidão de Nascimento",
-    7: "Pronto Protocolo",
-    8: "Benefício Protocolado",
-    9: "Em Análise INSS",
-    10: "Benefício Concedido",
-    11: "Cobrança Honorários",
-    12: "Honorários Pendentes",
-    13: "Honorários Recebidos",
-    14: "Inadimplente",
-    15: "Em Recurso INSS",
-  };
-
   return (
     <div className="relative w-full max-w-md">
       <div className="relative">
@@ -105,7 +86,7 @@ export function SearchBar() {
                         CPF: {cliente.cpf}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {etapaLabels[cliente.etapa] || "Etapa desconhecida"}
+                        {cliente.statusProcesso || "Sem status"}
                       </div>
                     </div>
                     {cliente.urgenteAbsoluta && (

@@ -12,7 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Kanban from "./pages/Kanban";
 import Clientes from "./pages/Clientes";
 import GPS from "./pages/GPS";
-import Urgencias from "./pages/Urgencias";
+import ClientesPorStatus from "./pages/ClientesPorStatus";
 import Honorarios from "./pages/Honorarios";
 import Relatorios from "./pages/Relatorios";
 
@@ -39,9 +39,9 @@ function Router() {
           <GPS />
         </DashboardLayout>
       </Route>
-      <Route path={"/urgencias"}>
+      <Route path={"/status/:slug"}>
         <DashboardLayout>
-          <Urgencias />
+          <ClientesPorStatus />
         </DashboardLayout>
       </Route>
       <Route path={"/honorarios"}>

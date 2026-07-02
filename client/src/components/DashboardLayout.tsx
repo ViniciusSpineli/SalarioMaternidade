@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/sidebar";
 
 import { useIsMobile } from "@/hooks/useMobile";
-import { LayoutDashboard, PanelLeft, Users, Kanban, DollarSign, Baby, BarChart3, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, PanelLeft, Users, Kanban, DollarSign, FileSignature, Baby, Clock, Scale, CheckCircle2, BarChart3, FileText, LogOut } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
@@ -33,7 +33,11 @@ const menuItems = [
   { icon: Kanban, label: "Kanban", path: "/kanban" },
   { icon: Users, label: "Clientes", path: "/clientes" },
   { icon: DollarSign, label: "GPS/Pagamentos", path: "/gps" },
-  { icon: Baby, label: "Aguardando Certidão", path: "/urgencias" },
+  { icon: FileSignature, label: "Aguardando Assinatura", path: "/status/aguardando-assinatura" },
+  { icon: Baby, label: "Aguardando Certidão", path: "/status/aguardando-certidao" },
+  { icon: Clock, label: "Em Análise INSS", path: "/status/em-analise-inss" },
+  { icon: Scale, label: "Em Recurso INSS", path: "/status/em-recurso-inss" },
+  { icon: CheckCircle2, label: "Benefícios Concedidos", path: "/status/beneficio-concedido" },
   { icon: BarChart3, label: "Honorários", path: "/honorarios" },
   { icon: FileText, label: "Relatórios", path: "/relatorios" },
 ];

@@ -3,17 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { Download } from "lucide-react";
+import { STATUS_PROCESSO, type StatusProcesso } from "@shared/status";
 
-type StatusFiltro =
-  | ""
-  | "concluidos"
-  | "em_andamento"
-  | "aguardando_nascimento"
-  | "aguardando_certidao"
-  | "em_recurso"
-  | "honorarios_pagos"
-  | "honorarios_pendentes"
-  | "inadimplentes";
+type StatusFiltro = "" | StatusProcesso | "inadimplentes";
 
 export default function Relatorios() {
   const [filtros, setFiltros] = useState({
@@ -92,13 +84,11 @@ export default function Relatorios() {
                 className="w-full p-2 border rounded mt-1"
               >
                 <option value="">Todos</option>
-                <option value="concluidos">Concluídos</option>
-                <option value="em_andamento">Em Andamento</option>
-                <option value="aguardando_nascimento">Aguardando Nascimento</option>
-                <option value="aguardando_certidao">Aguardando Certidão de Nascimento</option>
-                <option value="em_recurso">Em Recurso INSS</option>
-                <option value="honorarios_pagos">Honorários Pagos</option>
-                <option value="honorarios_pendentes">Honorários Pendentes</option>
+                {STATUS_PROCESSO.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
                 <option value="inadimplentes">Inadimplentes</option>
               </select>
             </div>
@@ -126,11 +116,11 @@ export default function Relatorios() {
                 <tr className="border-b">
                   <th className="text-left py-2 px-2">Mês (DPP)</th>
                   <th className="text-left py-2 px-2">Total</th>
-                  <th className="text-left py-2 px-2">Aguard. Nascimento</th>
+                  <th className="text-left py-2 px-2">Aguard. Assinatura</th>
                   <th className="text-left py-2 px-2">Aguard. Certidão</th>
+                  <th className="text-left py-2 px-2">Em Análise INSS</th>
                   <th className="text-left py-2 px-2">Em Recurso INSS</th>
                   <th className="text-left py-2 px-2">Benefício Concedido</th>
-                  <th className="text-left py-2 px-2">Concluídos</th>
                 </tr>
               </thead>
               <tbody>
@@ -145,11 +135,11 @@ export default function Relatorios() {
                     <tr key={m.mes} className="border-b hover:bg-gray-50">
                       <td className="py-2 px-2 font-semibold">{m.mes}</td>
                       <td className="py-2 px-2">{m.total}</td>
-                      <td className="py-2 px-2 text-blue-600">{m.aguardandoNascimento}</td>
+                      <td className="py-2 px-2 text-sky-600">{m.aguardandoAssinatura}</td>
                       <td className="py-2 px-2 text-amber-600">{m.aguardandoCertidao}</td>
+                      <td className="py-2 px-2 text-purple-600">{m.emAnalise}</td>
                       <td className="py-2 px-2 text-red-600">{m.emRecurso}</td>
-                      <td className="py-2 px-2 text-purple-600">{m.beneficioConcedido}</td>
-                      <td className="py-2 px-2 text-green-600">{m.concluidos}</td>
+                      <td className="py-2 px-2 text-green-600">{m.beneficioConcedido}</td>
                     </tr>
                   ))
                 )}
@@ -175,7 +165,7 @@ export default function Relatorios() {
                   <th className="text-left py-2 px-2">Origem</th>
                   <th className="text-left py-2 px-2">Contratação</th>
                   <th className="text-left py-2 px-2">Data do Parto</th>
-                  <th className="text-left py-2 px-2">Etapa</th>
+                  <th className="text-left py-2 px-2">Status Atual</th>
                   <th className="text-left py-2 px-2">Valor Honorários</th>
                   <th className="text-left py-2 px-2">Status Honorários</th>
                 </tr>
@@ -201,7 +191,11 @@ export default function Relatorios() {
                           ? new Date(cliente.dataNascimento).toLocaleDateString("pt-BR")
                           : "-"}
                       </td>
-                      <td className="py-2 px-2">{cliente.etapaNome}</td>
+                      <td className="py-2 px-2">
+                        <span className="inline-block bg-rose-100 text-rose-800 text-xs px-2 py-1 rounded">
+                          {cliente.statusProcesso}
+                        </span>
+                      </td>
                       <td className="py-2 px-2">
                         {cliente.honorarios
                           ? `R$ ${parseFloat(cliente.honorarios.valorTotal).toFixed(2).replace(".", ",")}`
@@ -212,13 +206,9 @@ export default function Relatorios() {
                           <span className="inline-block bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
                             Inadimplente
                           </span>
-                        ) : cliente.etapa === 13 ? (
+                        ) : cliente.honorarios?.statusPagamento ? (
                           <span className="inline-block bg-green-100 text-green-800 text-xs px-2 py-1 rounded">
-                            Recebido
-                          </span>
-                        ) : cliente.etapa === 12 ? (
-                          <span className="inline-block bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                            Pendente
+                            {cliente.honorarios.statusPagamento}
                           </span>
                         ) : (
                           "-"

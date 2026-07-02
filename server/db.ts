@@ -37,6 +37,9 @@ export async function getDb() {
         migrate(_db, { migrationsFolder });
       }
 
+      // Garante colunas novas em bancos já existentes (migração leve, idempotente).
+      ensureSchemaUpToDate(sqlite);
+
       // Cria o usuário administrador inicial na primeira execução.
       await seedInitialData(_db);
     } catch (error) {
@@ -45,6 +48,38 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+// Adiciona colunas novas em bancos criados antes delas existirem no schema.
+// Usa o handle bruto do better-sqlite3 (PRAGMA/ALTER), idempotente a cada start.
+function ensureSchemaUpToDate(sqlite: Database.Database) {
+  const colunaExiste = (tabela: string, coluna: string): boolean => {
+    const cols = sqlite.prepare(`PRAGMA table_info(${tabela})`).all() as { name: string }[];
+    return cols.some((c) => c.name === coluna);
+  };
+
+  try {
+    // clientes.statusProcesso — clientes já existentes viram 'Cliente ativa' (uma vez só).
+    if (!colunaExiste("clientes", "statusProcesso")) {
+      sqlite.exec(
+        `ALTER TABLE clientes ADD COLUMN statusProcesso TEXT NOT NULL DEFAULT 'Aguardando assinatura'`
+      );
+      sqlite.exec(`UPDATE clientes SET statusProcesso = 'Cliente ativa'`);
+      console.log("[Database] Coluna clientes.statusProcesso criada; clientes existentes -> 'Cliente ativa'");
+    }
+
+    // honorarios.statusPagamento — registros antigos ficam como 'Pendente' (default).
+    if (!colunaExiste("honorarios", "statusPagamento")) {
+      sqlite.exec(
+        `ALTER TABLE honorarios ADD COLUMN statusPagamento TEXT NOT NULL DEFAULT 'Pendente'`
+      );
+      // Se já estava marcado como recebido no modelo antigo, considera Quitada.
+      sqlite.exec(`UPDATE honorarios SET statusPagamento = 'Quitada' WHERE recebido = 1`);
+      console.log("[Database] Coluna honorarios.statusPagamento criada");
+    }
+  } catch (error) {
+    console.warn("[Database] ensureSchemaUpToDate falhou:", error);
+  }
 }
 
 // Insere o usuário administrador padrão se ainda não houver nenhum usuário local.
@@ -174,6 +209,7 @@ export async function createCliente(data: {
   dpp: Date;
   dataNascimento?: Date;
   observacoes?: string;
+  statusProcesso?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -184,6 +220,7 @@ export async function createCliente(data: {
 
   const result = await db.insert(clientes).values({
     ...data,
+    statusProcesso: data.statusProcesso || "Aguardando assinatura",
     etapa: etapaInicial,
     urgenteAbsoluta: !!urgenteAbsoluta,
   });

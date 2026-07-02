@@ -1,41 +1,21 @@
 import { z } from "zod";
+import { STATUS_PROCESSO } from "@shared/status";
 import { protectedProcedure, router } from "../_core/trpc";
-import { getAllClientes, getHonorariosByClienteId, getEtapaById } from "../db";
+import { getAllClientes, getHonorariosByClienteId } from "../db";
 
-type StatusFiltro =
-  | "concluidos"
-  | "em_andamento"
-  | "aguardando_nascimento"
-  | "aguardando_certidao"
-  | "em_recurso"
-  | "honorarios_pagos"
-  | "honorarios_pendentes"
-  | "inadimplentes";
+// Opções de filtro do relatório: os 7 status do processo + inadimplentes (flag).
+const STATUS_FILTRO = [...STATUS_PROCESSO, "inadimplentes"] as const;
+type StatusFiltro = (typeof STATUS_FILTRO)[number];
 
 // Aplica o filtro de status na lista de clientes (compartilhado por list e exportarCSV)
-function filtrarPorStatus<T extends { etapa: number; inadimplente: boolean | null }>(
+function filtrarPorStatus<T extends { statusProcesso: string; inadimplente: boolean | null }>(
   clientes: T[],
   status: StatusFiltro
 ): T[] {
-  switch (status) {
-    case "concluidos":
-    case "honorarios_pagos":
-      return clientes.filter(c => c.etapa === 13);
-    case "em_andamento":
-      return clientes.filter(c => c.etapa < 13 && !c.inadimplente);
-    case "aguardando_nascimento":
-      return clientes.filter(c => c.etapa === 5);
-    case "aguardando_certidao":
-      return clientes.filter(c => c.etapa === 6);
-    case "em_recurso":
-      return clientes.filter(c => c.etapa === 15);
-    case "honorarios_pendentes":
-      return clientes.filter(c => c.etapa === 12);
-    case "inadimplentes":
-      return clientes.filter(c => c.inadimplente);
-    default:
-      return clientes;
+  if (status === "inadimplentes") {
+    return clientes.filter((c) => c.inadimplente);
   }
+  return clientes.filter((c) => c.statusProcesso === status);
 }
 
 export const relatoriosRouter = router({
@@ -44,14 +24,14 @@ export const relatoriosRouter = router({
     .input(
       z.object({
         origem: z.string().optional(),
-        status: z.enum(["concluidos", "em_andamento", "aguardando_nascimento", "aguardando_certidao", "em_recurso", "honorarios_pagos", "honorarios_pendentes", "inadimplentes"]).optional(),
+        status: z.enum(STATUS_FILTRO).optional(),
       })
     )
     .query(async ({ input }) => {
       let clientes = await getAllClientes();
 
       if (input.origem) {
-        clientes = clientes.filter(c => c.origem === input.origem);
+        clientes = clientes.filter((c) => c.origem === input.origem);
       }
 
       if (input.status) {
@@ -64,7 +44,6 @@ export const relatoriosRouter = router({
         result.push({
           ...cliente,
           honorarios: honorarios[0] || null,
-          etapaNome: getEtapaById(cliente.etapa)?.nome,
         });
       }
 
@@ -76,14 +55,14 @@ export const relatoriosRouter = router({
     .input(
       z.object({
         origem: z.string().optional(),
-        status: z.enum(["concluidos", "em_andamento", "aguardando_nascimento", "aguardando_certidao", "em_recurso", "honorarios_pagos", "honorarios_pendentes", "inadimplentes"]).optional(),
+        status: z.enum(STATUS_FILTRO).optional(),
       })
     )
     .query(async ({ input }) => {
       let clientes = await getAllClientes();
 
       if (input.origem) {
-        clientes = clientes.filter(c => c.origem === input.origem);
+        clientes = clientes.filter((c) => c.origem === input.origem);
       }
 
       if (input.status) {
@@ -91,27 +70,25 @@ export const relatoriosRouter = router({
       }
 
       // Construir CSV com BOM UTF-8
-      let csv = "\uFEFF"; // BOM UTF-8
-      csv += "Nome,CPF,Origem,Contratacao,Data do Parto,Data de Fechamento,Forma Pagamento,Valor Honorarios,Status Honorarios,Etapa\n";
+      let csv = "﻿"; // BOM UTF-8
+      csv += "Nome,CPF,Origem,Contratacao,Data do Parto,Forma Pagamento,Valor Honorarios,Status Pagamento,Status Atual\n";
 
       for (const cliente of clientes) {
         const honorarios = await getHonorariosByClienteId(cliente.id);
         const hon = honorarios[0];
-        const statusHon = cliente.inadimplente ? "Inadimplente" : cliente.etapa === 13 ? "Recebido" : "Pendente";
-        const etapaNome = getEtapaById(cliente.etapa)?.nome || "";
+        const statusPag = cliente.inadimplente ? "Inadimplente" : hon?.statusPagamento || "-";
 
         const dataContratacao = cliente.dataContratacao ? new Date(cliente.dataContratacao).toLocaleDateString("pt-BR") : "";
         const dataParto = cliente.dataNascimento ? new Date(cliente.dataNascimento).toLocaleDateString("pt-BR") : "";
-        const dataFechamento = cliente.dataConclusao ? new Date(cliente.dataConclusao).toLocaleDateString("pt-BR") : "";
         const valorHon = hon ? parseFloat(hon.valorTotal).toFixed(2).replace(".", ",") : "0,00";
 
-        csv += `"${cliente.nome}","${cliente.cpf}","${cliente.origem || ""}","${dataContratacao}","${dataParto}","${dataFechamento}","${hon?.formaPagamento || ""}","${valorHon}","${statusHon}","${etapaNome}"\n`;
+        csv += `"${cliente.nome}","${cliente.cpf}","${cliente.origem || ""}","${dataContratacao}","${dataParto}","${hon?.formaPagamento || ""}","${valorHon}","${statusPag}","${cliente.statusProcesso}"\n`;
       }
 
       return csv;
     }),
 
-  // Visao geral por mes (agrupado pela DPP - data prevista do parto)
+  // Visao geral por mes (agrupado pela DPP - data prevista do parto), contando por status
   resumoMensalPorDPP: protectedProcedure.query(async () => {
     const clientes = await getAllClientes();
 
@@ -122,11 +99,11 @@ export const relatoriosRouter = router({
         ano: number;
         mesNum: number;
         total: number;
-        aguardandoNascimento: number;
+        aguardandoAssinatura: number;
         aguardandoCertidao: number;
+        emAnalise: number;
         emRecurso: number;
         beneficioConcedido: number;
-        concluidos: number;
       }
     > = {};
 
@@ -144,21 +121,21 @@ export const relatoriosRouter = router({
           ano,
           mesNum,
           total: 0,
-          aguardandoNascimento: 0,
+          aguardandoAssinatura: 0,
           aguardandoCertidao: 0,
+          emAnalise: 0,
           emRecurso: 0,
           beneficioConcedido: 0,
-          concluidos: 0,
         };
       }
 
       const m = meses[chave];
       m.total++;
-      if (c.etapa === 5) m.aguardandoNascimento++;
-      if (c.etapa === 6) m.aguardandoCertidao++;
-      if (c.etapa === 15) m.emRecurso++;
-      if (c.etapa === 10) m.beneficioConcedido++;
-      if (c.etapa === 13) m.concluidos++;
+      if (c.statusProcesso === "Aguardando assinatura") m.aguardandoAssinatura++;
+      if (c.statusProcesso === "Aguardando certidão") m.aguardandoCertidao++;
+      if (c.statusProcesso === "Em análise INSS") m.emAnalise++;
+      if (c.statusProcesso === "Em recurso INSS") m.emRecurso++;
+      if (c.statusProcesso === "Benefício concedido") m.beneficioConcedido++;
     }
 
     return Object.values(meses).sort((a, b) =>
@@ -169,7 +146,7 @@ export const relatoriosRouter = router({
   // Obter origens unicas
   getOrigens: protectedProcedure.query(async () => {
     const clientes = await getAllClientes();
-    const origensSet = new Set(clientes.map(c => c.origem).filter(Boolean));
+    const origensSet = new Set(clientes.map((c) => c.origem).filter(Boolean));
     const origens = Array.from(origensSet);
     return origens;
   }),

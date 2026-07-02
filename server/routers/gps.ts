@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { protectedProcedure, router } from "../_core/trpc";
-import { getGPSByClienteId, updateGPS, getAllClientes, getClienteById, updateCliente, createGPS } from "../db";
+import { getGPSByClienteId, updateGPS, getAllClientes, createGPS } from "../db";
 
 export const gpsRouter = router({
   // Listar GPS por cliente
@@ -30,24 +30,11 @@ export const gpsRouter = router({
       return { id };
     }),
 
-  // Marcar GPS como paga
+  // Marcar GPS como paga (controle de pagamento; não altera o status do processo)
   marcarPaga: protectedProcedure
     .input(z.object({ gpsId: z.number(), clienteId: z.number() }))
     .mutation(async ({ input }) => {
       await updateGPS(input.gpsId, { paga: true, dataComprovante: new Date() });
-
-      // Avançar etapa do cliente
-      const cliente = await getClienteById(input.clienteId);
-      if (cliente) {
-        if (cliente.dataNascimento) {
-          // Se já nasceu, ir para Aguardando Certidão de Nascimento
-          await updateCliente(input.clienteId, { etapa: 6 });
-        } else {
-          // Se ainda não nasceu, ir para Aguardando Nascimento
-          await updateCliente(input.clienteId, { etapa: 5 });
-        }
-      }
-
       return { success: true };
     }),
 

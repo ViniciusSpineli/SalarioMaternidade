@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { Plus, Edit2, Trash2 } from "lucide-react";
+import { STATUS_PROCESSO, STATUS_DEFAULT } from "@shared/status";
 
 // ==================== Máscaras / formatação ====================
 // CPF: 000.000.000-00
@@ -41,6 +42,7 @@ export default function Clientes() {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [filtroStatus, setFiltroStatus] = useState("");
   const [formData, setFormData] = useState({
     nome: "",
     cpf: "",
@@ -50,6 +52,7 @@ export default function Clientes() {
     dpp: new Date().toISOString().split("T")[0],
     dataNascimento: "",
     observacoes: "",
+    statusProcesso: STATUS_DEFAULT as string,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,10 +70,12 @@ export default function Clientes() {
           dpp: new Date(formData.dpp),
           dataNascimento: formData.dataNascimento ? new Date(formData.dataNascimento) : undefined,
           observacoes: formData.observacoes || undefined,
+          statusProcesso: formData.statusProcesso as any,
         });
       } else {
         await createMutation.mutateAsync({
           ...formData,
+          statusProcesso: formData.statusProcesso as any,
           dataContratacao: new Date(formData.dataContratacao),
           dpp: new Date(formData.dpp),
           dataNascimento: formData.dataNascimento ? new Date(formData.dataNascimento) : undefined,
@@ -86,6 +91,7 @@ export default function Clientes() {
         dpp: new Date().toISOString().split("T")[0],
         dataNascimento: "",
         observacoes: "",
+        statusProcesso: STATUS_DEFAULT,
       });
       setShowForm(false);
       setEditingId(null);
@@ -106,6 +112,7 @@ export default function Clientes() {
       dpp: toDateInput(cliente.dpp),
       dataNascimento: toDateInput(cliente.dataNascimento),
       observacoes: cliente.observacoes ?? "",
+      statusProcesso: cliente.statusProcesso ?? STATUS_DEFAULT,
     });
     setShowForm(true);
   };
@@ -192,6 +199,24 @@ export default function Clientes() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium">Status do Processo *</label>
+                  <select
+                    className="w-full p-2 border rounded mt-1"
+                    value={formData.statusProcesso}
+                    onChange={(e) => setFormData({ ...formData, statusProcesso: e.target.value })}
+                    required
+                  >
+                    {STATUS_PROCESSO.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-medium">Observações</label>
                 <textarea
@@ -222,7 +247,24 @@ export default function Clientes() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <CardTitle>Lista de Clientes</CardTitle>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Filtrar por status:</label>
+              <select
+                className="p-2 border rounded text-sm"
+                value={filtroStatus}
+                onChange={(e) => setFiltroStatus(e.target.value)}
+              >
+                <option value="">Todos</option>
+                {STATUS_PROCESSO.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -232,20 +274,26 @@ export default function Clientes() {
                   <th className="text-left py-2 px-2">Nome</th>
                   <th className="text-left py-2 px-2">CPF</th>
                   <th className="text-left py-2 px-2">Telefone</th>
-                  <th className="text-left py-2 px-2">Origem</th>
-                  <th className="text-left py-2 px-2">DPP</th>
+                  <th className="text-left py-2 px-2">Status Atual</th>
+                  <th className="text-left py-2 px-2">Última Atualização</th>
                   <th className="text-left py-2 px-2">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {clientes.map((cliente: any) => (
+                {clientes
+                  .filter((c: any) => !filtroStatus || c.statusProcesso === filtroStatus)
+                  .map((cliente: any) => (
                   <tr key={cliente.id} className="border-b hover:bg-gray-50">
                     <td className="py-2 px-2">{cliente.nome}</td>
                     <td className="py-2 px-2">{formatCPF(cliente.cpf)}</td>
                     <td className="py-2 px-2">{cliente.telefone ? formatTelefone(cliente.telefone) : "-"}</td>
-                    <td className="py-2 px-2">{cliente.origem || "-"}</td>
                     <td className="py-2 px-2">
-                      {new Date(cliente.dpp).toLocaleDateString("pt-BR")}
+                      <span className="inline-block bg-rose-100 text-rose-800 text-xs px-2 py-1 rounded">
+                        {cliente.statusProcesso}
+                      </span>
+                    </td>
+                    <td className="py-2 px-2">
+                      {cliente.updatedAt ? new Date(cliente.updatedAt).toLocaleDateString("pt-BR") : "-"}
                     </td>
                     <td className="py-2 px-2 flex gap-2">
                       <button

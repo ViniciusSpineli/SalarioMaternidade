@@ -4,22 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Plus, CheckCircle2 } from "lucide-react";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
+import { STATUS_PAGAMENTO, type StatusPagamento } from "@shared/status";
+
+// Normaliza o campo honorarios (que vem como array) para o primeiro registro.
+function primeiroHonorario(item: any): any | null {
+  const h = item?.honorarios;
+  if (Array.isArray(h)) return h[0] || null;
+  return h || null;
+}
 
 export default function Honorarios() {
+  const utils = trpc.useUtils();
   const { data: clientes = [] } = trpc.clientes.list.useQuery();
-  const { data: pendentes = [], refetch: refetchPendentes } = trpc.honorarios.listByStatus.useQuery(
-    { status: "pendentes" }
-  );
-  const { data: recebidos = [], refetch: refetchRecebidos } = trpc.honorarios.listByStatus.useQuery(
-    { status: "recebidos" }
-  );
-  const { data: inadimplentes = [], refetch: refetchInadimplentes } = trpc.honorarios.listByStatus.useQuery(
-    { status: "inadimplentes" }
-  );
+  const { data: pendentes = [] } = trpc.honorarios.listByStatus.useQuery({ status: "pendentes" });
+  const { data: recebidos = [] } = trpc.honorarios.listByStatus.useQuery({ status: "recebidos" });
+  const { data: inadimplentes = [] } = trpc.honorarios.listByStatus.useQuery({ status: "inadimplentes" });
 
   const registrarMutation = trpc.honorarios.registrarCobranca.useMutation();
-  const marcarRecebidoMutation = trpc.honorarios.marcarRecebido.useMutation();
+  const atualizarStatusMutation = trpc.honorarios.atualizarStatusPagamento.useMutation();
   const marcarInadimplenteMutation = trpc.honorarios.marcarInadimplente.useMutation();
 
   const [showForm, setShowForm] = useState(false);
@@ -33,6 +37,10 @@ export default function Honorarios() {
     vencimentoSegundaParcela: "",
     observacoes: "",
   });
+
+  const refetchTudo = async () => {
+    await utils.honorarios.listByStatus.invalidate();
+  };
 
   const handleRegistrarCobranca = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,29 +64,33 @@ export default function Honorarios() {
         observacoes: "",
       });
       setShowForm(false);
-      refetchPendentes();
+      await refetchTudo();
+      toast.success("Cobrança registrada");
     } catch (error) {
       console.error(error);
+      toast.error("Não foi possível registrar a cobrança");
     }
   };
 
-  const handleMarcarRecebido = async (honorarioId: number, clienteId: number) => {
+  const handleAtualizarStatus = async (honorarioId: number, statusPagamento: StatusPagamento) => {
     try {
-      await marcarRecebidoMutation.mutateAsync({ honorarioId, clienteId });
-      refetchPendentes();
-      refetchRecebidos();
+      await atualizarStatusMutation.mutateAsync({ honorarioId, statusPagamento });
+      await refetchTudo();
+      toast.success("Status de pagamento atualizado");
     } catch (error) {
       console.error(error);
+      toast.error("Não foi possível atualizar o pagamento");
     }
   };
 
   const handleMarcarInadimplente = async (clienteId: number) => {
     try {
       await marcarInadimplenteMutation.mutateAsync({ clienteId });
-      refetchPendentes();
-      refetchInadimplentes();
+      await refetchTudo();
+      toast.success("Cliente marcada como inadimplente");
     } catch (error) {
       console.error(error);
+      toast.error("Não foi possível marcar como inadimplente");
     }
   };
 
@@ -103,9 +115,7 @@ export default function Honorarios() {
                   <label className="text-sm font-medium">Cliente</label>
                   <select
                     value={formData.clienteId}
-                    onChange={(e) =>
-                      setFormData({ ...formData, clienteId: parseInt(e.target.value) })
-                    }
+                    onChange={(e) => setFormData({ ...formData, clienteId: parseInt(e.target.value) })}
                     className="w-full p-2 border rounded"
                     required
                   >
@@ -121,17 +131,13 @@ export default function Honorarios() {
                   type="number"
                   placeholder="Valor Total"
                   value={formData.valorTotal}
-                  onChange={(e) =>
-                    setFormData({ ...formData, valorTotal: parseFloat(e.target.value) })
-                  }
+                  onChange={(e) => setFormData({ ...formData, valorTotal: parseFloat(e.target.value) })}
                   step="0.01"
                   required
                 />
                 <select
                   value={formData.formaPagamento}
-                  onChange={(e) =>
-                    setFormData({ ...formData, formaPagamento: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, formaPagamento: e.target.value })}
                   className="p-2 border rounded"
                 >
                   <option>PIX</option>
@@ -140,9 +146,7 @@ export default function Honorarios() {
                 </select>
                 <select
                   value={formData.parcelamento}
-                  onChange={(e) =>
-                    setFormData({ ...formData, parcelamento: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, parcelamento: e.target.value })}
                   className="p-2 border rounded"
                 >
                   <option>À vista</option>
@@ -154,9 +158,7 @@ export default function Honorarios() {
                   <Input
                     type="date"
                     value={formData.dataVencimento}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dataVencimento: e.target.value })
-                    }
+                    onChange={(e) => setFormData({ ...formData, dataVencimento: e.target.value })}
                     required
                   />
                 </div>
@@ -164,12 +166,7 @@ export default function Honorarios() {
                   type="number"
                   placeholder="Valor 1ª Parcela"
                   value={formData.valorPrimeiraParcela}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      valorPrimeiraParcela: parseFloat(e.target.value),
-                    })
-                  }
+                  onChange={(e) => setFormData({ ...formData, valorPrimeiraParcela: parseFloat(e.target.value) })}
                   step="0.01"
                 />
                 <div>
@@ -177,12 +174,7 @@ export default function Honorarios() {
                   <Input
                     type="date"
                     value={formData.vencimentoSegundaParcela}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        vencimentoSegundaParcela: e.target.value,
-                      })
-                    }
+                    onChange={(e) => setFormData({ ...formData, vencimentoSegundaParcela: e.target.value })}
                   />
                 </div>
               </div>
@@ -193,19 +185,13 @@ export default function Honorarios() {
                   className="w-full p-2 border rounded"
                   rows={2}
                   value={formData.observacoes}
-                  onChange={(e) =>
-                    setFormData({ ...formData, observacoes: e.target.value })
-                  }
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                 />
               </div>
 
               <div className="flex gap-2">
                 <Button type="submit">Registrar</Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowForm(false)}
-                >
+                <Button type="button" variant="outline" onClick={() => setShowForm(false)}>
                   Cancelar
                 </Button>
               </div>
@@ -225,36 +211,36 @@ export default function Honorarios() {
         <TabsContent value="pendentes">
           <HonorariosTable
             items={pendentes}
-            onMarcarRecebido={handleMarcarRecebido}
+            onAtualizarStatus={handleAtualizarStatus}
             onMarcarInadimplente={handleMarcarInadimplente}
-            showActions={true}
+            showInadimplente={true}
           />
         </TabsContent>
 
         <TabsContent value="boletos">
           <HonorariosTable
-            items={pendentes.filter((p: any) => p.cliente.honorarios?.formaPagamento === "Boleto")}
-            onMarcarRecebido={handleMarcarRecebido}
+            items={pendentes.filter((p: any) => primeiroHonorario(p)?.formaPagamento === "Boleto")}
+            onAtualizarStatus={handleAtualizarStatus}
             onMarcarInadimplente={handleMarcarInadimplente}
-            showActions={true}
+            showInadimplente={true}
           />
         </TabsContent>
 
         <TabsContent value="recebidos">
           <HonorariosTable
             items={recebidos}
-            onMarcarRecebido={handleMarcarRecebido}
+            onAtualizarStatus={handleAtualizarStatus}
             onMarcarInadimplente={handleMarcarInadimplente}
-            showActions={false}
+            showInadimplente={false}
           />
         </TabsContent>
 
         <TabsContent value="inadimplentes">
           <HonorariosTable
             items={inadimplentes}
-            onMarcarRecebido={handleMarcarRecebido}
+            onAtualizarStatus={handleAtualizarStatus}
             onMarcarInadimplente={handleMarcarInadimplente}
-            showActions={false}
+            showInadimplente={false}
           />
         </TabsContent>
       </Tabs>
@@ -264,14 +250,14 @@ export default function Honorarios() {
 
 function HonorariosTable({
   items,
-  onMarcarRecebido,
+  onAtualizarStatus,
   onMarcarInadimplente,
-  showActions,
+  showInadimplente,
 }: {
   items: any[];
-  onMarcarRecebido: (honorarioId: number, clienteId: number) => void;
+  onAtualizarStatus: (honorarioId: number, statusPagamento: StatusPagamento) => void;
   onMarcarInadimplente: (clienteId: number) => void;
-  showActions: boolean;
+  showInadimplente: boolean;
 }) {
   return (
     <Card>
@@ -285,42 +271,53 @@ function HonorariosTable({
                 <th className="text-left py-2 px-2">Forma Pagamento</th>
                 <th className="text-left py-2 px-2">Parcelamento</th>
                 <th className="text-left py-2 px-2">Vencimento</th>
-                {showActions && <th className="text-left py-2 px-2">Ações</th>}
+                <th className="text-left py-2 px-2">Status Pagamento</th>
+                {showInadimplente && <th className="text-left py-2 px-2">Ações</th>}
               </tr>
             </thead>
             <tbody>
               {items.length === 0 ? (
                 <tr>
-                  <td colSpan={showActions ? 6 : 5} className="py-4 text-center text-gray-500">
+                  <td colSpan={showInadimplente ? 7 : 6} className="py-4 text-center text-gray-500">
                     Nenhum registro encontrado
                   </td>
                 </tr>
               ) : (
-                items.map((item: any) => (
-                  <tr key={item.cliente.id} className="border-b hover:bg-gray-50">
-                    <td className="py-2 px-2">{item.cliente.nome}</td>
-                    <td className="py-2 px-2">
-                      R$ {parseFloat(item.honorarios?.valorTotal || "0").toFixed(2).replace(".", ",")}
-                    </td>
-                    <td className="py-2 px-2">{item.honorarios?.formaPagamento || "-"}</td>
-                    <td className="py-2 px-2">{item.honorarios?.parcelamento || "-"}</td>
-                    <td className="py-2 px-2">
-                      {item.honorarios?.dataVencimento
-                        ? new Date(item.honorarios.dataVencimento).toLocaleDateString("pt-BR")
-                        : "-"}
-                    </td>
-                    {showActions && (
-                      <td className="py-2 px-2 flex gap-2">
-                        {item.honorarios && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                onMarcarRecebido(item.honorarios.id, item.cliente.id)
-                              }
-                            >
-                              <CheckCircle2 size={14} className="mr-1" /> Recebido
-                            </Button>
+                items.map((item: any) => {
+                  const hon = primeiroHonorario(item);
+                  return (
+                    <tr key={item.cliente.id} className="border-b hover:bg-gray-50">
+                      <td className="py-2 px-2">{item.cliente.nome}</td>
+                      <td className="py-2 px-2">
+                        R$ {parseFloat(hon?.valorTotal || "0").toFixed(2).replace(".", ",")}
+                      </td>
+                      <td className="py-2 px-2">{hon?.formaPagamento || "-"}</td>
+                      <td className="py-2 px-2">{hon?.parcelamento || "-"}</td>
+                      <td className="py-2 px-2">
+                        {hon?.dataVencimento
+                          ? new Date(hon.dataVencimento).toLocaleDateString("pt-BR")
+                          : "-"}
+                      </td>
+                      <td className="py-2 px-2">
+                        {hon ? (
+                          <select
+                            value={hon.statusPagamento || "Pendente"}
+                            onChange={(e) => onAtualizarStatus(hon.id, e.target.value as StatusPagamento)}
+                            className="p-1 border rounded text-sm"
+                          >
+                            {STATUS_PAGAMENTO.map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      {showInadimplente && (
+                        <td className="py-2 px-2">
+                          {hon && (
                             <Button
                               size="sm"
                               variant="destructive"
@@ -328,12 +325,12 @@ function HonorariosTable({
                             >
                               Inadimplente
                             </Button>
-                          </>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

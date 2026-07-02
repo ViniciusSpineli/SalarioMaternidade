@@ -72,6 +72,9 @@ echo   Para PARAR: feche esta janela ou pressione Ctrl+C
 echo ============================================================
 echo.
 
+REM Abre o navegador automaticamente assim que o servidor estiver pronto
+start "" /min "%~dp0abrir_site.bat"
+
 call pnpm dev
 
 echo.

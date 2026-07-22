@@ -79,7 +79,7 @@ export default function Login() {
                 <Input
                   id="email"
                   type="text"
-                  placeholder="Steffany"
+                  placeholder="Digite seu usuário"
                   autoComplete="username"
                   value={email}
                   onChange={e => setEmail(e.target.value)}

@@ -15,6 +15,22 @@ Uma aplicação **full-stack** construída para organizar o fluxo de trabalho de
 
 ---
 
+## 📸 Preview
+
+### 🔐 Tela de Login
+
+<p align="center">
+  <img alt="Tela de login do Controle de Salário-Maternidade" src="docs/preview-login.png" width="100%" />
+</p>
+
+### 📊 Dashboard
+
+<p align="center">
+  <img alt="Dashboard com indicadores e resumo de honorários" src="docs/preview-dashboard.png" width="100%" />
+</p>
+
+---
+
 ## ✨ Funcionalidades
 
 - 📊 **Dashboard** com estatísticas, indicadores e alertas em tempo real

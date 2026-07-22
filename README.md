@@ -20,13 +20,13 @@ Uma aplicação **full-stack** construída para organizar o fluxo de trabalho de
 ### 🔐 Tela de Login
 
 <p align="center">
-  <img alt="Tela de login do Controle de Salário-Maternidade" src="docs/preview-login.png" width="100%" />
+  <img alt="Tela de login do Controle de Salário-Maternidade" src="docs/login.png" width="100%" />
 </p>
 
 ### 📊 Dashboard
 
 <p align="center">
-  <img alt="Dashboard com indicadores e resumo de honorários" src="docs/preview-dashboard.png" width="100%" />
+  <img alt="Dashboard com indicadores e resumo de honorários" src="docs/dashboard.png" width="100%" />
 </p>
 
 ---

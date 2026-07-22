@@ -26,7 +26,7 @@ Uma aplicação **full-stack** construída para organizar o fluxo de trabalho de
 ### 📊 Dashboard
 
 <p align="center">
-  <img alt="Dashboard com indicadores e resumo de honorários" src="docs/dashboard.png" width="100%" />
+  <img alt="Dashboard com indicadores e resumo de honorários" src="docs/Dashboard.png" width="100%" />
 </p>
 
 ---
